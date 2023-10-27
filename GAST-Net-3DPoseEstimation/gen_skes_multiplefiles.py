@@ -1,20 +1,3 @@
-'''
-import os
-from gen_skes import *
-
-dir_list=os.listdir(r"../../Dataset_CVDLPT_Videos_Blurred_Segments_Corrected")
-
-print(dir_list)
-
-for file in dir_list:
-    video = '../../PHVideoDataSet/' + file
-    output_3D_npz = './output/' + video.split('/')[-1].split('.')[0] + '_3D.npz'
-    if not os.path.exists(output_3D_npz):
-       print(video)
-       generate_skeletons(video=video, output_animation=False, num_person=1)
-       break
-'''
-
 import os
 import subprocess
 import time
@@ -22,7 +5,7 @@ import pdb
 from gen_skes import *
 
 # Specify the folder path containing long mp4 files
-mp4_source_folder_path = '../../Dataset_CVDLPT_Videos_Blurred_Segments_Corrected'
+mp4_source_folder_path = '../../Dataset_CVDLPT_Videos_Segments'
 
 # Specify the folder path containing long mp4 files
 npz_destination_folder_path = './output'
@@ -35,4 +18,7 @@ for filename in os.listdir(mp4_source_folder_path):
         if not os.path.exists(npz_destination_file_path):
             print(npz_destination_file_path)
             print(filename)
-            generate_skeletons(video=mp4_source_file_path, output_animation=False, num_person=1)
+            try:
+               generate_skeletons(video=mp4_source_file_path, output_animation=False, num_person=1)
+            except subprocess.CalledProcessError as e:
+               print(f"Error: {mp4_source_file_path}", e)
