@@ -26,7 +26,7 @@ for filename in os.listdir(delination_source_folder_path):
              #print(delination_source_file_path)
              #print(mp4_source_file_path)
              if os.path.exists(mp4_source_file_path):
-                   #if f"{filename.split('_anonymized')[0]}.mp4" == "E3_P8_T0_C0.mp4":
+                if f"{filename.split('_anonymized')[0]}.mp4" == "E9_P2_T1_C1.mp4":
                    #print(mp4_source_file_path)
                    with open(delination_source_file_path) as f:
                        Fnums=f.readlines()[0].split()
@@ -35,7 +35,7 @@ for filename in os.listdir(delination_source_folder_path):
                        mp4_destination_file_path = os.path.join(mp4_destination_folder_path,f"{filename.split('_anonymized')[0]}_seg{cnti}.mp4")
                        #print(Fnums[cnti],Fnums[cnti+1])
                        #print(mp4_destination_file_path)
-                       '''
+                       
                        # Define the FFmpeg command as a list of strings
                        ffmpeg_command = [
                            'ffmpeg',
@@ -58,4 +58,4 @@ for filename in os.listdir(delination_source_folder_path):
                        #print(mp4_destination_file_path)
 
                        #time.sleep(10.5)    # Pause 5.5 seconds
-                       '''
+                       
