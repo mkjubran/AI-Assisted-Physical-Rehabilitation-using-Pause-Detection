@@ -3,10 +3,10 @@ import subprocess
 import time
 
 # Specify the folder path containing mp4 files
-source_folder_path = './Dataset_CVDLPT_Videos_Blurred_WErrors'
+source_folder_path = '../Dataset_CVDLPT_Videos_Blurred'
 
 # Specify the folder path to output mp4 files with frame numbers
-destination_folder_path = './Dataset_CVDLPT_Videos_Blurred_WErrorsFrameNumber'
+destination_folder_path = '../Dataset_CVDLPT_Videos_Blurred_WFrameNum'
 
 # Initialize an empty list to store numbers
 numbers_list = []

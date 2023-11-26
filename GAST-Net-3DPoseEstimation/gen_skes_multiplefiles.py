@@ -5,7 +5,7 @@ import pdb
 from gen_skes import *
 
 # Specify the folder path containing long mp4 files
-mp4_source_folder_path = '../../Dataset_CVDLPT_Videos_Segments'
+mp4_source_folder_path = '../../Dataset_CVDLPT_Videos_Segments_11_2023'
 
 # Specify the folder path containing long mp4 files
 npz_destination_folder_path = './output'
