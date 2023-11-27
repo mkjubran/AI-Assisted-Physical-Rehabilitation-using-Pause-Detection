@@ -6,8 +6,10 @@ import numpy as np
 import LSTM_AutoEncoder_Class as LSTMC
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
-
+from torch.utils.tensorboard import SummaryWriter
 import pdb
+
+writer = SummaryWriter()
 
 def LoadData(path):
    # ------------------------------------------- LOAD .npz FILES --------------------------------------------- #
@@ -64,6 +66,24 @@ if __name__=='__main__':
    # Create an instance of the LSTM Autoencoder model
    model = LSTMC.LSTM_AE(input_size, hidden_size, num_layers, device)
 
+   # Save model every 10 epochs
+   save_interval = 2
+
+   # Path to the saved model file
+   saved_model_path = f"./Models/model_checkpoint_epoch_2.pt"
+
+   # Check if the saved model file exists
+   if os.path.exists(saved_model_path):
+       # Load the saved model state dictionary
+       saved_model_state = torch.load(saved_model_path)
+
+       # Load the state dictionary into the model
+       model.load_state_dict(saved_model_state)
+
+       print(f'Model loaded from {saved_model_path}')
+   else:
+       print(f'No saved model found at {saved_model_path}. Training from scratch.')
+
    # Move the model to the specified device (e.g., GPU)
    model.to(device)
 
@@ -76,7 +96,7 @@ if __name__=='__main__':
    best_loss = 10000.0
 
    # Number of training epochs
-   n_epochs = 20
+   n_epochs = 200
 
    # Main training loop
    for epoch in range(1, n_epochs + 1):
@@ -124,3 +144,14 @@ if __name__=='__main__':
       # Print the training and validation losses for each epoch
       print(f'Epoch {epoch}: train loss {train_loss} val loss {val_loss}')
 
+      writer.add_scalar("Loss/train", train_loss, epoch)
+      writer.add_scalar("Loss/test", val_loss, epoch)
+
+      # Save the model every 10 epochs
+      if epoch % save_interval == 0:
+          save_path = f'./Models/model_checkpoint_epoch_{epoch}.pt'
+          torch.save(model.state_dict(), save_path)
+          print(f'Model saved at epoch {epoch} to {save_path}')
+
+writer.flush()
+writer.close()
