@@ -58,19 +58,22 @@ if __name__=='__main__':
    input_size = 51
 
    # Define the size of the hidden layer in the LSTM Autoencoder
-   hidden_size = 16
+   hidden_size = 32
 
    # Define the number of layers in the LSTM Autoencoder
-   num_layers = 2
+   num_layers = 4
 
    # Create an instance of the LSTM Autoencoder model
    model = LSTMC.LSTM_AE(input_size, hidden_size, num_layers, device)
 
    # Save model every 10 epochs
-   save_interval = 2
+   save_interval = 10
+
+   #Starting training from this epoch; setting the epoch start to 0 implies training from scratch
+   epoch_start = 0
 
    # Path to the saved model file
-   saved_model_path = f"./Models/model_checkpoint_epoch_2.pt"
+   saved_model_path = f"./Models/model_checkpoint_hidden_size_{hidden_size}_num_layers_{num_layers}_epoch_{epoch_start}.pt"
 
    # Check if the saved model file exists
    if os.path.exists(saved_model_path):
@@ -95,11 +98,11 @@ if __name__=='__main__':
    # Initialize the best loss for model checkpointing
    best_loss = 10000.0
 
-   # Number of training epochs
+   # Number of training epochs.
    n_epochs = 200
 
    # Main training loop
-   for epoch in range(1, n_epochs + 1):
+   for epoch in range(epoch_start, n_epochs + 1):
       # Set the model to training mode
       model = model.train()
       train_losses = []
@@ -149,7 +152,7 @@ if __name__=='__main__':
 
       # Save the model every 10 epochs
       if epoch % save_interval == 0:
-          save_path = f'./Models/model_checkpoint_epoch_{epoch}.pt'
+          save_path = f'./Models/model_checkpoint_hidden_size_{hidden_size}_num_layers_{num_layers}_epoch_{epoch}.pt'
           torch.save(model.state_dict(), save_path)
           print(f'Model saved at epoch {epoch} to {save_path}')
 
