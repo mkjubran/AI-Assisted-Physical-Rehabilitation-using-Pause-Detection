@@ -13,8 +13,8 @@ import pdb
 resultsFile='results_GAST_2D_RF.txt'
 
 if __name__ == "__main__":
-   #npzOptions=np.array([[3,4,10],[3,8,10,],[3,12,10],[3,16,10],[11,4,5],[11,4,10],[11,4,20],[11,4,30],[11,4,50],[11,8,10],[6,8,10],[6,4,10],[21,4,10]])
-   npzOptions=np.array([[11,4,10],[21,4,10]])
+   npzOptions=np.array([[3,4,10],[3,8,10,],[3,12,10],[3,16,10],[11,4,5],[11,4,10],[11,4,20],[11,4,30],[11,4,50],[11,8,10],[6,8,10],[6,4,10],[21,4,10]])
+   #npzOptions=np.array([[11,4,10],[21,4,10]])
    print(npzOptions)
    for cnt in range(npzOptions.shape[0]):
       print(f"l={npzOptions[cnt,0]}, s={npzOptions[cnt,1]}, a={npzOptions[cnt,2]}")
@@ -43,27 +43,6 @@ if __name__ == "__main__":
         print(f"Fitting and Evaluating RF with {n_estimators} estimators")
 
         try:
-            '''
-            # Split the data into training and testing sets
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-            # Create a Random Forest Classifier
-            rf_classifier = RandomForestClassifier(n_estimators=n_estimators, random_state=42)
-
-            # Train the classifier on the training data
-            rf_classifier.fit(X_train, y_train)
-
-            # Make predictions on the testing data
-            y_pred = rf_classifier.predict(X_test)
-
-            # Evaluate the performance of the classifier
-            accuracy = accuracy_score(y_test, y_pred)
-            report = classification_report(y_test, y_pred)
-
-            print("Accuracy:", accuracy)
-            print("\nClassification Report:\n", report)
-
-            '''
             rfc = RandomForestClassifier(n_estimators=n_estimators)
             #cv = RepeatedKFold(n_splits=10, n_repeats=5)
             scores = cross_validate(rfc, X=X, y=y, cv=50, return_train_score=True)

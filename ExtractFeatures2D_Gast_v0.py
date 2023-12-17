@@ -20,28 +20,43 @@ start_time = datetime.now()
 
 
 #Parameters
-a = 10
-l = 3
-s = 12
+#l=11;s=4;a=10
+#l=11;s=4;a=20
+#l=11;s=4;a=30
+#l=11;s=4;a=5
+#l=11;s=4;a=50
+#l=11;s=8;a=10
+#l=21;s=4;a=10
+l=3;s=12;a=10
+#l=3;s=16;a=10
+#l=3;s=4;a=10
+#l=3;s=8;a=10
+#l=6;s=4;a=10
+#l=6;s=8;a=10
+
 
 
 # ------------------------------------------- LOAD .npz FILES --------------------------------------------- #
-dictionary3D = {}  # dictionary to store all 3D files
 dictionary2D = {}  # dictionary to store all 2D files
 # files path
-path = '/AIARUPD/Dataset_CVDLPT_Videos_Segments_npz_old'
+path = '/AIARUPD/Dataset_CVDLPT_Videos_Segments_npz_11_2023'
+width, height = (1920, 1080)
+
 # loop through all files and store them in the dictionary
 for npzFile in os.listdir(path):
     f = os.path.join(path, npzFile)
     if os.path.isfile(f):
-        if "_3D" in f:
+        if "_2D" in f:
             fdata = np.load(f)
+            #pdb.set_trace()
             # load the files into the dictionary
-            dictionary3D[npzFile.split('_3D')[0]] = fdata['reconstruction'][0, :, :, :]
-        # elif "_2D" in f:
-        #     fdata = np.load(f)
-        #     # load the files into the dictionary
-        #     dictionary2D[npzFile.split('_2D')[0]] = fdata['reconstruction'][0, :, :, :]
+            X=fdata['reconstruction'][0, :, :, 0]/height
+            X=X[:,:,np.newaxis]
+            Y=fdata['reconstruction'][0, :, :, 1]/width
+            Y=Y[:,:,np.newaxis]
+            dictionary2D[npzFile.split('_2D')[0]] =np.concatenate((X,Y),axis=2)
+            
+print(f"{len(dictionary2D.keys())} files are loaded")
 
 
 def window_size(l, s, v):
@@ -139,13 +154,14 @@ allExercises = {f'E{i}': [] for i in range(10)}
 
 i = 0
 cnt=0;
-for k in dictionary3D.keys():
+lenData=len(dictionary2D.keys())
+for k in dictionary2D.keys():
     cnt = cnt+1
     #if cnt > 10:
     #   break
-    v = dictionary3D[k].shape[0]
+    v = dictionary2D[k].shape[0]
     w = window_size(l, s, v)
-    print(f"file={k}, data length {v}, window size {w}")
+    print(f"{cnt}/{lenData}: file={k}, data length {v}, window size {w}")
 
     i = i + 1
     features = {
@@ -164,15 +180,15 @@ for k in dictionary3D.keys():
         'dc_bias': []
     }
 
-    if dictionary3D[k].shape[0] < int(a/2) + 1 + (l - 1) * s:
-        dictionary3D[k]=np.concatenate((dictionary3D[k],np.zeros((((l - 1)*s -v + int(a/2) + 1),dictionary3D[k].shape[1],dictionary3D[k].shape[2]))),axis=0)
-        w = window_size(l, s, dictionary3D[k].shape[0])
-        print(f"........................, new data length {dictionary3D[k].shape[0]}, new window size {w}")
+    if dictionary2D[k].shape[0] < int(a/2) + 1 + (l - 1) * s:
+        dictionary2D[k]=np.concatenate((dictionary2D[k],np.zeros((((l - 1)*s -v + int(a/2) + 1),dictionary2D[k].shape[1],dictionary2D[k].shape[2]))),axis=0)
+        w = window_size(l, s, dictionary2D[k].shape[0])
+        print(f"........................, new data length {dictionary2D[k].shape[0]}, new window size {w}")
 
-    for joint in range(dictionary3D[k].shape[1]):
+    for joint in range(dictionary2D[k].shape[1]):
 
         # Extract all axis values for the current joint and frame
-        axis_values = dictionary3D[k][:, joint, :]
+        axis_values = dictionary2D[k][:, joint, :]
 
         # Apply z-score normalization to all axis values
         #axis_values = zscore(axis_values, axis=0)
@@ -180,7 +196,7 @@ for k in dictionary3D.keys():
         # Split the normalized values into x, y, and z components
         x_values = axis_values[:, 0]
         y_values = axis_values[:, 1]
-        z_values = axis_values[:, 2]
+        #z_values = axis_values[:, 2]
 
         # Extract features for x, y, and z values
         #if k == "E0_P1_T0_C0_seg8":
@@ -188,7 +204,7 @@ for k in dictionary3D.keys():
 
         featuresExtraction(x_values, w, s, features, a)
         featuresExtraction(y_values, w, s, features, a)
-        featuresExtraction(z_values, w, s, features, a)
+        #featuresExtraction(z_values, w, s, features, a)
 
         #for val in features.values():
         #   if np.isnan(val).any():
@@ -239,7 +255,8 @@ else:
     print("The array contains NaN values.")
 
 for  label in np.unique(Z[:,-1]):
-     np.save(f"SavedData_E{int(label)}_l{l}_s{s}_a{a}",Z[Z[:,-1]==label])
+     np.save(f"SavedData_GAST_2D_E{int(label)}_l{l}_s{s}_a{a}",Z[Z[:,-1]==label])
 
 
 print("--- Time: %s  ---" % (datetime.now() - start_time))
+

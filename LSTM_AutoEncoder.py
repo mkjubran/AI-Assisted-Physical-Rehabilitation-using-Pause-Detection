@@ -58,7 +58,7 @@ if __name__=='__main__':
    input_size = 51
 
    # Define the size of the hidden layer in the LSTM Autoencoder
-   hidden_size = 32
+   hidden_size = 64
 
    # Define the number of layers in the LSTM Autoencoder
    num_layers = 4
@@ -99,7 +99,7 @@ if __name__=='__main__':
    best_loss = 10000.0
 
    # Number of training epochs.
-   n_epochs = 200
+   n_epochs = 1000
 
    # Main training loop
    for epoch in range(epoch_start, n_epochs + 1):
@@ -115,7 +115,7 @@ if __name__=='__main__':
          seq_true = torch.tensor(seq_true).to(device)
 
          # Forward pass through the model
-         _, seq_pred = model(seq_true, seq_true.shape[1])
+         encoded_x, seq_pred = model(seq_true, seq_true.shape[1])
 
          # Calculate the loss and perform backpropagation
          loss = criterion(seq_pred, seq_true)
@@ -151,7 +151,7 @@ if __name__=='__main__':
       writer.add_scalar("Loss/test", val_loss, epoch)
 
       # Save the model every 10 epochs
-      if epoch % save_interval == 0:
+      if epoch % save_interval == 0 and epoch != 0:
           save_path = f'./Models/model_checkpoint_hidden_size_{hidden_size}_num_layers_{num_layers}_epoch_{epoch}.pt'
           torch.save(model.state_dict(), save_path)
           print(f'Model saved at epoch {epoch} to {save_path}')
