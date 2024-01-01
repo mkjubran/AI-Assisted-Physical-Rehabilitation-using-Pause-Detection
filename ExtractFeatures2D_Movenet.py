@@ -44,15 +44,17 @@ path = '/AIARUPD/Dataset_CVDLPT_Videos_Segments_MoveNet_thunder_npz'
 width, height = (1920, 1080)
 
 # loop through all files and store them in the dictionary
+cnt=0
 for npzFile in os.listdir(path):
     f = os.path.join(path, npzFile)
     if os.path.isfile(f):
+        cnt += 1
         if "_2D" in f:
             fdata = np.load(f)
             #pdb.set_trace()
             # load the files into the dictionary
             dictionary2D[npzFile.split('_2D')[0]] = fdata['arr_0'][:,:,0:2]
-            pdb.set_trace()
+            #pdb.set_trace()
 
             
 print(f"{len(dictionary2D.keys())} files are loaded")
@@ -116,6 +118,33 @@ def extract_argavg_values(x):
     return min(argavg_values)
 
 
+def extract_fft_values(x):
+    Xf = np.fft.fft(x)  # Fourier transform
+
+    #ArgMax of fft
+    if np.max(np.abs(x)) < 1e-10:
+        argmax = 0
+    argmax = np.argmax(np.abs(Xf))
+
+    #ArgMin of fft
+    argmin = np.argmin(np.abs(Xf))  # Find the index with the maximum magnitude
+
+    #Average of fft
+    magnitude = np.abs(Xf)  # Magnitude of the Fourier transform
+    average_magnitude = np.mean(magnitude)  # Average magnitude
+
+    # Find the values where the absolute difference from the average is less than or equal for all j
+    argavg_values = [i for i, mag_i in enumerate(magnitude) if all(
+        abs(mag_i - average_magnitude) <= abs(mag_j - average_magnitude) for j, mag_j in enumerate(magnitude))]
+
+    N = len(Xf)
+    dc_bias = (1 / N) * np.sum(np.abs(Xf) ** 2)
+
+    if not argavg_values:
+        argavg_values = None
+
+    return argmax, argmin, min(argavg_values), dc_bias
+
 def extract_dc_bias(x):
     Xf = np.fft.fft(x)
     N = len(Xf)
@@ -142,12 +171,19 @@ def featuresExtraction(data, w, s, features,num_autocorrelation_values):
         features['sRMS'].extend([calculate_sRMS(window)])
         features['sma'].extend([calculate_sma(window)])
         features['itot'].extend([integrand(window)])
-        features['ARG_MAX'].extend([extract_argmax(window)])
-        features['ARG_MIN'].extend([extract_argmin(window)])
-        features['ARG_AVG'].extend(
-            [extract_argavg_values(window)])
-        features['dc_bias'].extend(
-            [extract_dc_bias(window)])
+
+        argmax, argmin, argavg_values, dc_bias = extract_fft_values(window)
+        features['ARG_MAX'].extend([argmax])
+        features['ARG_MIN'].extend([argmin])
+        features['ARG_AVG'].extend([argavg_values])
+        features['dc_bias'].extend([dc_bias])
+
+        #features['ARG_MAX'].extend([extract_argmax(window)])
+        #features['ARG_MIN'].extend([extract_argmin(window)])
+        #features['ARG_AVG'].extend(
+        #    [extract_argavg_values(window)])
+        #features['dc_bias'].extend(
+        #    [extract_dc_bias(window)])
 
 allExercises = {f'E{i}': [] for i in range(10)}
 
@@ -155,6 +191,8 @@ i = 0
 cnt=0;
 lenData=len(dictionary2D.keys())
 for k in dictionary2D.keys():
+    siglist = k.split('_')
+    sig = [int(siglist[0][1]),int(siglist[1][1]),int(siglist[2][1]),int(siglist[3][1]),int(siglist[4][3:])]
     cnt = cnt+1
     #if cnt > 10:
     #   break
@@ -163,7 +201,8 @@ for k in dictionary2D.keys():
     print(f"{cnt}/{lenData}: file={k}, data length {v}, window size {w}")
 
     i = i + 1
-    features = {
+    features = { 
+        'sig' : sig, # will store the label
         'mean': [],  # will store 51 value (17 joint * 3 axis)
         'variance': [],
         'skewness': [],
@@ -235,26 +274,28 @@ for k in dictionary2D.keys():
 
 X, y, Y = [], [], []
 # Define dictionaries to store TP, TN, FP, and FN for each exercise
+#pdb.set_trace()
 for exercise, features in allExercises.items():
     for feature in features:
         feature_values = [value for key, values in feature.items() for value in values if len(values) > 0]
         if feature_values:  # Check if any non-empty values were appended
             X.append(feature_values)
-            y.append(exercise)
-            Y.append(int(exercise[1:]))
+            #y.append(exercise)
+            #Y.append(int(exercise[1:]))
+            #Y.append([int(npzFileSplit[0][1]),npzFileSplit[1][1],npzFileSplit[2][1],npzFileSplit[3][1],npzFileSplit[4][3:]],dtype=float)
 
-x=np.array(X)
-Y=np.array(Y).reshape(-1,1)
-Z=np.concatenate((x,Y),axis=1)
+Z=np.array(X)
+#Y=np.array(Y).reshape(-1,1)
+#Z=np.concatenate((x,Y),axis=1)
 #np.save('SavedData',Z)
 
-if not np.isnan(x).any():
+if not np.isnan(Z).any():
     print("The array does not contain any NaN values.")
 else:
     print("The array contains NaN values.")
 
-for  label in np.unique(Z[:,-1]):
-     np.save(f"SavedData_MoveNet_thunder_2D_E{int(label)}_l{l}_s{s}_a{a}",Z[Z[:,-1]==label])
+for  label in np.unique(Z[:,0]):
+     np.save(f"FeaturesVectors_MoveNet_thunder_2D_E{int(label)}_l{l}_s{s}_a{a}",Z[Z[:,0]==label])
 
 
 print("--- Time: %s  ---" % (datetime.now() - start_time))

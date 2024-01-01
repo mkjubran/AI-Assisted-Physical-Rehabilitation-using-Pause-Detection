@@ -20,14 +20,14 @@ start_time = datetime.now()
 
 
 #Parameters
-#l=11;s=4;a=10
+l=11;s=4;a=10
 #l=11;s=4;a=20
 #l=11;s=4;a=30
 #l=11;s=4;a=5
 #l=11;s=4;a=50
 #l=11;s=8;a=10
 #l=21;s=4;a=10
-l=3;s=12;a=10
+#l=3;s=12;a=10
 #l=3;s=16;a=10
 #l=3;s=4;a=10
 #l=3;s=8;a=10
@@ -39,7 +39,7 @@ l=3;s=12;a=10
 # ------------------------------------------- LOAD .npz FILES --------------------------------------------- #
 dictionary2D = {}  # dictionary to store all 2D files
 # files path
-path = '/AIARUPD/Dataset_CVDLPT_Videos_Segments_npz_11_2023'
+path = '/AIARUPD/Dataset_CVDLPT_Videos_Segments_OpenPose_PyTorch_npz'
 width, height = (1920, 1080)
 
 # loop through all files and store them in the dictionary
@@ -48,11 +48,12 @@ for npzFile in os.listdir(path):
     if os.path.isfile(f):
         if "_2D" in f:
             fdata = np.load(f)
+            fdata['arr_0'][fdata['arr_0'] == -1] = 0
             #pdb.set_trace()
             # load the files into the dictionary
-            X=fdata['reconstruction'][0, :, :, 0]/height
+            X=fdata['arr_0'][:, :, 0]/height
             X=X[:,:,np.newaxis]
-            Y=fdata['reconstruction'][0, :, :, 1]/width
+            Y=fdata['arr_0'][:, :, 1]/width
             Y=Y[:,:,np.newaxis]
             dictionary2D[npzFile.split('_2D')[0]] =np.concatenate((X,Y),axis=2)
             
@@ -255,7 +256,7 @@ else:
     print("The array contains NaN values.")
 
 for  label in np.unique(Z[:,-1]):
-     np.save(f"SavedData_GAST_2D_E{int(label)}_l{l}_s{s}_a{a}",Z[Z[:,-1]==label])
+     np.save(f"SavedData_OpenPose_PyTorch_2D_E{int(label)}_l{l}_s{s}_a{a}",Z[Z[:,-1]==label])
 
 
 print("--- Time: %s  ---" % (datetime.now() - start_time))
