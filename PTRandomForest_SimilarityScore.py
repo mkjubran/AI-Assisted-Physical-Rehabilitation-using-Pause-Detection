@@ -19,8 +19,11 @@ path_score = '/AIARUPD/Dataset_CVDLPT_Videos_embbeddings_similarityScore_MoveNet
 
 #Exercise Type
 Exercise="E0"
-# Get the list of files in the folder
+
+# Get the list of files in the folder; for specific exercise or all exercises
 file_list = [file for file in os.listdir(path_score) if ((os.path.isfile(os.path.join(path_score, file))) and (Exercise in file))]
+#file_list = [file for file in os.listdir(path_score) if ((os.path.isfile(os.path.join(path_score, file))) and (True))]
+
 # loop through all files and store them in the dictionary
 DataScore=np.array([])
 for npzFile in tqdm(file_list, desc=f"Loading Similarity Score"):
@@ -42,10 +45,28 @@ for npzFile in tqdm(file_list, desc=f"Loading Similarity Score"):
 
 npzOptions=np.array([[3,4,10],[3,8,10,],[3,12,10],[3,16,10],[11,4,5],[11,4,10],[11,4,20],[11,4,30],[11,4,50],[11,8,10],[6,8,10],[6,4,10],[21,4,10]])
 cnt=1
-label=Exercise[1]
-featureVector=np.load(f"../HandcraftedFeaturesVector/SavedData_MoveNet_thunder_2D_E{label}_l{npzOptions[cnt,0]}_s{npzOptions[cnt,1]}_a{npzOptions[cnt,2]}.npy",allow_pickle=True)
 
-resultsFile=f"{Exercise}_results_Score_MoveNet_thunder_2D_RF.txt"
+##Loading Features Vectors for all exercises
+for label in tqdm(range(10), desc="Loading Features Vectors"):
+   LoadedFV=np.load(f"../HandcraftedFeaturesVector/FeaturesVectors_MoveNet_thunder_2D_E{label}_l{npzOptions[cnt,0]}_s{npzOptions[cnt,1]}_a{npzOptions[cnt,2]}.npy",allow_pickle=True)
+   if label == 0:
+       featureVector=LoadedFV.copy()
+   else:
+       featureVector = np.concatenate((featureVector,LoadedFV),axis=0)
+
+resultsFile=f"Results_Score_MoveNet_thunder_2D_RF.txt"
+
+FeatureVector_Score=np.ones((DataScore.shape[0],featureVector.shape[1]-5+1))
+for cnt in tqdm(range(featureVector.shape[0]), desc=f"Macthing  Features Vectors and Similarity Scores"):
+    # return indices where exercise (featureVector[cnt,0:5]) match exercise (DataScore[:,5:10])
+    true_indices = np.where((featureVector[cnt,0:5] == DataScore[:,5:10]).all(axis=1))[0]
+
+    # Add the feature vector to the matrix
+    FeatureVector_Score[true_indices,0:-1]=featureVector[2,5:]
+
+    # Add the similarity score to the matrix
+    FeatureVector_Score[true_indices,-1]=DataScore[true_indices,10]
+
 pdb.set_trace()
 
 '''
