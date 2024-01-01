@@ -56,13 +56,13 @@ for label in tqdm(range(10), desc="Loading Features Vectors"):
 
 resultsFile=f"Results_Score_MoveNet_thunder_2D_RF.txt"
 
-FeatureVector_Score=np.ones((DataScore.shape[0],featureVector.shape[1]-5+1))
+FeatureVector_Score=np.ones((DataScore.shape[0],featureVector.shape[1]+1))
 for cnt in tqdm(range(featureVector.shape[0]), desc=f"Macthing  Features Vectors and Similarity Scores"):
     # return indices where exercise (featureVector[cnt,0:5]) match exercise (DataScore[:,5:10])
     true_indices = np.where((featureVector[cnt,0:5] == DataScore[:,5:10]).all(axis=1))[0]
 
     # Add the feature vector to the matrix
-    FeatureVector_Score[true_indices,0:-1]=featureVector[2,5:]
+    FeatureVector_Score[true_indices,0:-1]=featureVector[cnt,:]
 
     # Add the similarity score to the matrix
     FeatureVector_Score[true_indices,-1]=DataScore[true_indices,10]
