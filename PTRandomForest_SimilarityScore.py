@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, make_scorer
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import classification_report
@@ -10,6 +10,11 @@ from sklearn.model_selection import RepeatedKFold
 import multiprocessing
 import os
 from tqdm import tqdm
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import make_pipeline
+from sklearn.ensemble import GradientBoostingRegressor
 import pdb
 
 # ------------------------------------------- LOAD .npz FILES --------------------------------------------- #
@@ -44,7 +49,13 @@ for npzFile in tqdm(file_list, desc=f"Loading Similarity Score"):
                DataScore = np.concatenate((DataScore,Source_Score), axis=0)
 
 npzOptions=np.array([[3,4,10],[3,8,10,],[3,12,10],[3,16,10],[11,4,5],[11,4,10],[11,4,20],[11,4,30],[11,4,50],[11,8,10],[6,8,10],[6,4,10],[21,4,10]])
-cnt=1
+cnt=4
+print(npzOptions[cnt])
+
+resultsFile=f"Results_Score_MoveNet_thunder_2D.txt"
+with open(resultsFile, 'a') as f:
+  f.write(f"{Exercise} - {npzOptions[cnt]}")
+
 
 ##Loading Features Vectors for all exercises
 for label in tqdm(range(10), desc="Loading Features Vectors"):
@@ -54,56 +65,101 @@ for label in tqdm(range(10), desc="Loading Features Vectors"):
    else:
        featureVector = np.concatenate((featureVector,LoadedFV),axis=0)
 
-resultsFile=f"Results_Score_MoveNet_thunder_2D_RF.txt"
-
-FeatureVector_Score=np.ones((DataScore.shape[0],featureVector.shape[1]+1))
-for cnt in tqdm(range(featureVector.shape[0]), desc=f"Macthing  Features Vectors and Similarity Scores"):
+#FeatureVector_Score=np.ones((DataScore.shape[0],featureVector.shape[1]+1))
+FeatureVector_Score=[]
+for cnt in tqdm(range(featureVector.shape[0]), desc=f"Matching Features Vectors and Similarity Scores"):
     # return indices where exercise (featureVector[cnt,0:5]) match exercise (DataScore[:,5:10])
     true_indices = np.where((featureVector[cnt,0:5] == DataScore[:,5:10]).all(axis=1))[0]
+    if len(true_indices) > 0:
+       tmp = DataScore[true_indices,:]
+       idx = np.where(tmp[:,10]==np.max(tmp[:,10]))
+       FeatureVector_Score.append(np.concatenate((featureVector[cnt,:],tmp[idx,10].reshape(-1)),axis=0))
 
     # Add the feature vector to the matrix
-    FeatureVector_Score[true_indices,0:-1]=featureVector[cnt,:]
+    #FeatureVector_Score[true_indices,0:-1]=featureVector[cnt,:]
 
     # Add the similarity score to the matrix
-    FeatureVector_Score[true_indices,-1]=DataScore[true_indices,10]
+    #FeatureVector_Score[true_indices,-1]=DataScore[true_indices,10]
 
-pdb.set_trace()
+FVS=FeatureVector_Score[np.where(FeatureVector_Score[:,0] == 0)[0],5:]
+X=FVS[:,:-1]
+y=FVS[:,-1]
+#rfc = RandomForestRegressor(n_estimators=100)
 
-'''
-if __name__ == "__main__":
-   npzOptions=np.array([[3,4,10],[3,8,10,],[3,12,10],[3,16,10],[11,4,5],[11,4,10],[11,4,20],[11,4,30],[11,4,50],[11,8,10],[6,8,10],[6,4,10],[21,4,10]])
-   print(npzOptions)
-   for cnt in range(npzOptions.shape[0]):
-      print(f"l={npzOptions[cnt,0]}, s={npzOptions[cnt,1]}, a={npzOptions[cnt,2]}")
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
 
-      for label in np.arange(10):
-          print(f"loading {label} ...")
-          tmp = np.load(f"../PDSaveData/SavedData_MoveNet_thunder_2D_E{label}_l{npzOptions[cnt,0]}_s{npzOptions[cnt,1]}_a{npzOptions[cnt,2]}.npy",allow_pickle=True)
-          if label == 0:
-              Zload = tmp.copy()
-          else:
-              Zload = np.concatenate((Zload, tmp), axis=0)
+## ----- Random Forest Regressor
+# Create a Random Forest Regressor
+rf_regressor = RandomForestRegressor(n_estimators=100, random_state=42)
 
-      # Find rows with any NaN values
-      rows_without_nan = np.all(~np.isnan(Zload), axis=1)
+# Train the model
+rf_regressor.fit(X_train, y_train)
 
-      # Use boolean indexing to get rows without NaN values
-      Zload = Zload[rows_without_nan]
+# Make predictions on the train set
+y_train_pred = rf_regressor.predict(X_train)
 
-      X = Zload[:, :-1]
-      y = Zload[:, -1]
+# Make predictions on the test set
+y_test_pred = rf_regressor.predict(X_test)
 
-      with open(resultsFile, 'a') as f:
-         f.write(f"\n\nl={npzOptions[cnt,0]}, s={npzOptions[cnt,1]}, a={npzOptions[cnt,2]}\n")
+# Evaluate the model
+mse_test = mean_squared_error(y_test, y_test_pred)
+mse_train = mean_squared_error(y_train, y_train_pred)
+r2_train = r2_score(y_test, y_test_pred)
+r2_test = r2_score(y_train, y_train_pred)
+print(f"RF - R2: Train {r2_train}, Test {r2_test}")
+print(f"RF - Mean Squared Error: Train {mse_train}, Test {mse_test}")
+with open(resultsFile, 'a') as f:
+  f.write(f"RF - R2: Train {r2_train}, Test {r2_test}")
+  f.write("RF - Mean Squared Error: Train {mse_train}, Test {mse_test}")
 
-      for n_estimators in [5,10,20,30,50,100]:
-         print(f"Fitting and Evaluating RF with {n_estimators} estimators")
-         rfc = RandomForestClassifier(n_estimators=n_estimators)
-         #cv = RepeatedKFold(n_splits=10, n_repeats=5)
-         scores = cross_validate(rfc, X=X, y=y, cv=50, return_train_score=True)
-         print(n_estimators,np.mean(scores['train_score']),np.mean(scores['test_score']),np.mean(scores['fit_time']),np.mean(scores['score_time']))
+## ----- Multivariate Linear Regression
+# Create a multivariate linear regression model using scikit-learn
+model = LinearRegression()
 
-         with open(resultsFile, 'a') as f:
-            f.write(f"Num Estimators = {n_estimators}, Train Acc.:{np.mean(scores['train_score'])}, Test Acc.: {np.mean(scores['test_score'])}, Train Time (Sec):{np.mean(scores['fit_time'])}, Test Time (Sec): {np.mean(scores['score_time'])}\n")
-      
-'''
+# Train the model
+model.fit(X_train, y_train)
+
+# Make predictions on the train set
+y_train_pred = model.predict(X_train)
+
+# Make predictions on the test set
+y_test_pred = model.predict(X_test)
+
+# Evaluate the model
+mse_test = mean_squared_error(y_test, y_test_pred)
+mse_train = mean_squared_error(y_train, y_train_pred)
+r2_train = r2_score(y_test, y_test_pred)
+r2_test = r2_score(y_train, y_train_pred)
+print(f"Multivariate Linear - R2: Train {r2_train}, Test {r2_test}")
+print(f"Multivariate Linear - Mean Squared Error: Train {mse_train}, Test {mse_test}")
+with open(resultsFile, 'a') as f:
+  f.write(f"Multivariate Linear - R2: Train {r2_train}, Test {r2_test}")
+  f.write(f"Multivariate Linear - Mean Squared Error: Train {mse_train}, Test {mse_test}")
+
+
+## ----- Gradient Boosting Regressor
+# Create a Gradient Boosting Regression model
+# You can adjust hyperparameters such as learning_rate, n_estimators, max_depth, etc.
+model = GradientBoostingRegressor(n_estimators=100, learning_rate=0.1, max_depth=3, random_state=42)
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Make predictions on the train set
+y_train_pred = model.predict(X_train)
+
+# Make predictions on the test set
+y_test_pred = model.predict(X_test)
+
+# Evaluate the model
+mse_test = mean_squared_error(y_test, y_test_pred)
+mse_train = mean_squared_error(y_train, y_train_pred)
+r2_train = r2_score(y_test, y_test_pred)
+r2_test = r2_score(y_train, y_train_pred)
+print(f"Gradient Boosting - R2: Train {r2_train}, Test {r2_test}")
+print(f"Gradient Boosting - Mean Squared Error: Train {mse_train}, Test {mse_test}")
+with open(resultsFile, 'a') as f:
+  f.write(f"Gradient Boosting - R2: Train {r2_train}, Test {r2_test}")
+  f.write(f"Gradient Boosting - Mean Squared Error: Train {mse_train}, Test {mse_test}")
+
