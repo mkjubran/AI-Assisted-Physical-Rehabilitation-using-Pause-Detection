@@ -10,7 +10,7 @@ from sklearn.model_selection import RepeatedKFold
 import multiprocessing
 import os
 from tqdm import tqdm
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, explained_variance_score
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import make_pipeline
@@ -52,10 +52,9 @@ npzOptions=np.array([[3,4,10],[3,8,10,],[3,12,10],[3,16,10],[11,4,5],[11,4,10],[
 cnt=4
 print(npzOptions[cnt])
 
-resultsFile=f"Results_Score_MoveNet_thunder_2D.txt"
+resultsFile=f"results_Score_MoveNet_thunder_2D.txt"
 with open(resultsFile, 'a') as f:
   f.write(f"{Exercise} - {npzOptions[cnt]}")
-
 
 ##Loading Features Vectors for all exercises
 for label in tqdm(range(10), desc="Loading Features Vectors"):
@@ -65,7 +64,6 @@ for label in tqdm(range(10), desc="Loading Features Vectors"):
    else:
        featureVector = np.concatenate((featureVector,LoadedFV),axis=0)
 
-#FeatureVector_Score=np.ones((DataScore.shape[0],featureVector.shape[1]+1))
 FeatureVector_Score=[]
 for cnt in tqdm(range(featureVector.shape[0]), desc=f"Matching Features Vectors and Similarity Scores"):
     # return indices where exercise (featureVector[cnt,0:5]) match exercise (DataScore[:,5:10])
@@ -75,16 +73,10 @@ for cnt in tqdm(range(featureVector.shape[0]), desc=f"Matching Features Vectors 
        idx = np.where(tmp[:,10]==np.max(tmp[:,10]))
        FeatureVector_Score.append(np.concatenate((featureVector[cnt,:],tmp[idx,10].reshape(-1)),axis=0))
 
-    # Add the feature vector to the matrix
-    #FeatureVector_Score[true_indices,0:-1]=featureVector[cnt,:]
-
-    # Add the similarity score to the matrix
-    #FeatureVector_Score[true_indices,-1]=DataScore[true_indices,10]
-
-FVS=FeatureVector_Score[np.where(FeatureVector_Score[:,0] == 0)[0],5:]
+FeatureVector_Score = np.stack(FeatureVector_Score,axis=0)
+FVS=FeatureVector_Score[5:]
 X=FVS[:,:-1]
 y=FVS[:,-1]
-#rfc = RandomForestRegressor(n_estimators=100)
 
 # Split the data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
@@ -103,15 +95,26 @@ y_train_pred = rf_regressor.predict(X_train)
 y_test_pred = rf_regressor.predict(X_test)
 
 # Evaluate the model
-mse_test = mean_squared_error(y_test, y_test_pred)
 mse_train = mean_squared_error(y_train, y_train_pred)
-r2_train = r2_score(y_test, y_test_pred)
-r2_test = r2_score(y_train, y_train_pred)
-print(f"RF - R2: Train {r2_train}, Test {r2_test}")
-print(f"RF - Mean Squared Error: Train {mse_train}, Test {mse_test}")
+mse_test = mean_squared_error(y_test, y_test_pred)
+r2_train = r2_score(y_train, y_train_pred)
+r2_test = r2_score(y_test, y_test_pred)
+MAE_train = mean_absolute_error(y_train, y_train_pred)
+MAE_test = mean_absolute_error(y_test, y_test_pred)
+EVS_train=explained_variance_score(y_train, y_train_pred)
+EVS_test=explained_variance_score(y_test, y_test_pred)
+
+print(f"Random Forest")
+print(f"MSE: Train {mse_train}, Test {mse_test}")
+print(f"R2 Score:Train {r2_train}, Test {r2_teest}")
+print(f"MAE Score:Train {MAE_train}, Test {MAE_teest}")
+print(f"EVS Score:Train {EVS_train}, Test {EVS_teest}")
 with open(resultsFile, 'a') as f:
-  f.write(f"RF - R2: Train {r2_train}, Test {r2_test}")
-  f.write("RF - Mean Squared Error: Train {mse_train}, Test {mse_test}")
+  f.write(f"Random Forest")
+  f.write(f"MSE: Train {mse_train}, Test {mse_test}")
+  f.write(f"R2 Score:Train {r2_train}, Test {r2_teest}")
+  f.write(f"MAE Score:Train {MAE_train}, Test {MAE_teest}")
+  f.write(f"EVS Score:Train {EVS_train}, Test {EVS_teest}")
 
 ## ----- Multivariate Linear Regression
 # Create a multivariate linear regression model using scikit-learn
@@ -127,16 +130,27 @@ y_train_pred = model.predict(X_train)
 y_test_pred = model.predict(X_test)
 
 # Evaluate the model
-mse_test = mean_squared_error(y_test, y_test_pred)
 mse_train = mean_squared_error(y_train, y_train_pred)
-r2_train = r2_score(y_test, y_test_pred)
-r2_test = r2_score(y_train, y_train_pred)
-print(f"Multivariate Linear - R2: Train {r2_train}, Test {r2_test}")
-print(f"Multivariate Linear - Mean Squared Error: Train {mse_train}, Test {mse_test}")
-with open(resultsFile, 'a') as f:
-  f.write(f"Multivariate Linear - R2: Train {r2_train}, Test {r2_test}")
-  f.write(f"Multivariate Linear - Mean Squared Error: Train {mse_train}, Test {mse_test}")
+mse_test = mean_squared_error(y_test, y_test_pred)   
+r2_train = r2_score(y_train, y_train_pred)
+r2_test = r2_score(y_test, y_test_pred)
+MAE_train = mean_absolute_error(y_train, y_train_pred)
+MAE_test = mean_absolute_error(y_test, y_test_pred)
+EVS_train=explained_variance_score(y_train, y_train_pred)
+EVS_test=explained_variance_score(y_test, y_test_pred)
 
+print(f"Multivariate Linear")
+print(f"Random Forest")
+print(f"MSE: Train {mse_train}, Test {mse_test}")
+print(f"R2 Score:Train {r2_train}, Test {r2_teest}")
+print(f"MAE Score:Train {MAE_train}, Test {MAE_teest}")
+print(f"EVS Score:Train {EVS_train}, Test {EVS_teest}")
+with open(resultsFile, 'a') as f:
+  f.write(f"Multivariate Linear")
+  f.write(f"MSE: Train {mse_train}, Test {mse_test}")
+  f.write(f"R2 Score: Train {r2_train}, Test {r2_test}")
+  f.write(f"MAE Score:Train {MAE_train}, Test {MAE_teest}")
+  f.write(f"EVS Score:Train {EVS_train}, Test {EVS_teest}")
 
 ## ----- Gradient Boosting Regressor
 # Create a Gradient Boosting Regression model
@@ -153,13 +167,23 @@ y_train_pred = model.predict(X_train)
 y_test_pred = model.predict(X_test)
 
 # Evaluate the model
-mse_test = mean_squared_error(y_test, y_test_pred)
 mse_train = mean_squared_error(y_train, y_train_pred)
-r2_train = r2_score(y_test, y_test_pred)
-r2_test = r2_score(y_train, y_train_pred)
-print(f"Gradient Boosting - R2: Train {r2_train}, Test {r2_test}")
-print(f"Gradient Boosting - Mean Squared Error: Train {mse_train}, Test {mse_test}")
-with open(resultsFile, 'a') as f:
-  f.write(f"Gradient Boosting - R2: Train {r2_train}, Test {r2_test}")
-  f.write(f"Gradient Boosting - Mean Squared Error: Train {mse_train}, Test {mse_test}")
+mse_test = mean_squared_error(y_test, y_test_pred)   
+r2_train = r2_score(y_train, y_train_pred)
+r2_test = r2_score(y_test, y_test_pred)
+MAE_train = mean_absolute_error(y_train, y_train_pred)
+MAE_test = mean_absolute_error(y_test, y_test_pred)
+EVS_train=explained_variance_score(y_train, y_train_pred)
+EVS_test=explained_variance_score(y_test, y_test_pred)
 
+print(f"Gradient Boosting")
+print(f"MSE: Train {mse_train}, Test {mse_test}")
+print(f"R2 Score:Train {r2_train}, Test {r2_teest}")
+print(f"MAE Score:Train {MAE_train}, Test {MAE_teest}")
+print(f"EVS Score:Train {EVS_train}, Test {EVS_teest}")
+with open(resultsFile, 'a') as f:
+  f.write(f"Gradient Boosting")
+  f.write(f"MSE: Train {mse_train}, Test {mse_test}")
+  f.write(f"R2 Score: Train {r2_train}, Test {r2_test}")
+  f.write(f"MAE Score:Train {MAE_train}, Test {MAE_teest}")
+  f.write(f"EVS Score:Train {EVS_train}, Test {EVS_teest}")
