@@ -7,6 +7,7 @@ import cv2
 import time
 import h5py
 from tqdm import tqdm
+import pdb
 
 sys.path.insert(0, osp.dirname(osp.realpath(__file__)))
 from tools.utils import get_path
@@ -108,14 +109,22 @@ def generate_skeletons(video='', rf=27, output_animation=False, num_person=1, ab
     """
 
     # video = data_root + video
-    cap = cv2.VideoCapture(video)
-    width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-    height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    #cap = cv2.VideoCapture(video)
+    #width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+    #height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
+    # read an image (video is the path to a jpg image): jubran
+    cap = cv2.imread(video)
+    height=cap.shape[0]
+    width=cap.shape[1]
+
+    #pdb.set_trace()
     keypoints, scores = hrnet_pose(video, det_dim=416, num_peroson=num_person, gen_output=True)
     keypoints, scores, valid_frames = h36m_coco_format(keypoints, scores)
     re_kpts = revise_kpts(keypoints, scores, valid_frames)
     num_person = len(re_kpts)
+
+    keypoints_scores = np.concatenate((keypoints,scores[...,np.newaxis]),axis=3)
 
     # Loading 3D pose model
     model_pos = load_model_layer(rf)
@@ -160,7 +169,8 @@ def generate_skeletons(video='', rf=27, output_animation=False, num_person=1, ab
 
         #print('Saving 2D reconstruction...')
         output_2D_npz = './output/' + video.split('/')[-1].split('.')[0] + '_2D.npz'
-        np.savez_compressed(output_2D_npz, reconstruction=re_kpts)
+        np.savez_compressed(output_2D_npz, reconstruction=keypoints_scores)
+        #np.savez_compressed(output_2D_npz, reconstruction=re_kpts)
 
         print('Completing saving...')
 
